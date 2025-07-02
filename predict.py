@@ -16,6 +16,10 @@ from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_S
 
 
 def predict(args):
+    # Auto-detect device
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using device: {device}")
+    
     # Remove generation config from model folder
     # to read generation parameters from args
     model_path = os.path.expanduser(args.model_path)
@@ -28,7 +32,7 @@ def predict(args):
     # Load model
     disable_torch_init()
     model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name, device="mps")
+    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name, device=device)
 
     # Construct prompt
     qs = args.prompt
@@ -45,7 +49,8 @@ def predict(args):
     model.generation_config.pad_token_id = tokenizer.pad_token_id
 
     # Tokenize prompt
-    input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(torch.device("mps"))
+    torch_device = torch.device(device)
+    input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(torch_device)
 
     # Load and preprocess image
     image = Image.open(args.image_file).convert('RGB')
